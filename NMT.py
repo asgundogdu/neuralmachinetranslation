@@ -265,7 +265,8 @@ def _eval_test_set(sess, model, test_buckets):
         print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
 
 def _construct_response(output_logits, inv_dec_vocab):
-    outputs = [int(np.argmax(output_logits[:,logit_i], axis=0)) for logit_i in range(output_logits.shape[1])]
+    #outputs = [int(np.argmax(output_logits[:,logit_i], axis=0)) for logit_i in range(output_logits.shape[1])]
+    outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
     # If there is an EOS symbol in outputs, cut them at that point.
     if config.EOS_ID in outputs:
         outputs = outputs[:outputs.index(config.EOS_ID)]
