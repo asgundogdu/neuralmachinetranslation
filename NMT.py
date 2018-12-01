@@ -402,9 +402,9 @@ def main():
     if run_type == 'train':
         train()
     elif run_type == 'test':
-        pass
+        test()
     elif run_type == 'translate':
-        pass
+        translate()
     else: raise ValueError('You should input either `train`, `test` or `translate`!')
 
 
