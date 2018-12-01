@@ -141,7 +141,6 @@ def _assert_lengths(encoder_size, decoder_size, encoder_inputs, decoder_inputs, 
         raise ValueError("Weights length must be equal to the one in bucket,"
                        " %d != %d." % (len(decoder_masks), decoder_size))
 
-
 def run_step(sess, model, encoder_inputs, decoder_inputs, decoder_masks, bucket_id, forward_only):
     """ Run one step in training.
     @forward_only: boolean value to decide whether a backward path should be created
@@ -214,6 +213,41 @@ def _get_buckets():
     print("Bucket scale:\n", train_buckets_scale)
     return test_buckets, data_buckets, train_buckets_scale
 
+def _get_user_input():
+    """ Get user's input, which will be transformed into encoder input later """
+    print("> ", end="")
+    sys.stdout.flush()
+    return sys.stdin.readline()
+
+def _construct_response(output_logits, inv_dec_vocab):
+    """ Construct a response to the user's encoder input.
+    @output_logits: the outputs from sequence to sequence wrapper.
+    output_logits is decoder_size np array, each of dim 1 x DEC_VOCAB
+    
+    This is a greedy decoder - outputs are just argmaxes of output_logits.
+    """
+    print(output_logits[0])
+    outputs = [int(np.argmax(logit, axis=1)) for logit in output_logits]
+    # If there is an EOS symbol in outputs, cut them at that point.
+    if config.EOS_ID in outputs:
+        outputs = outputs[:outputs.index(config.EOS_ID)]
+    # Print out sentence corresponding to outputs.
+    return " ".join([tf.compat.as_str(inv_dec_vocab[output]) for output in outputs])
+
+def _eval_test_set(sess, model, test_buckets):
+    """ Evaluate on the test set. """
+    for bucket_id in range(len(config.BUCKETS)):
+        if len(test_buckets[bucket_id]) == 0:
+            print("  Test: empty bucket %d" % (bucket_id))
+            continue
+        start = time.time()
+        encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
+                                                                        bucket_id,
+                                                                        batch_size=config.BATCH_SIZE)
+        _, step_loss, _ = run_step(sess, model, encoder_inputs, decoder_inputs, 
+                                   decoder_masks, bucket_id, True)
+        print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
+
 
 def train():
     data.token2id('train', 'en') #encode
@@ -257,6 +291,64 @@ def train():
                         _eval_test_set(sess, model, test_buckets)
                         start = time.time()
                     sys.stdout.flush()
+
+def translate():
+	""" in test mode, we don't to create the backward path
+    """
+
+    model = TranslationModel(True, batch_size=1)
+    model.build_graph()
+
+    saver = tf.train.Saver()
+
+     with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        _check_restore_parameters(sess, saver)
+        output_file = open(os.path.join(config.PROCESSED_PATH, config.OUTPUT_FILE), 'a+')
+        # Decode from standard input.
+        max_length = config.BUCKETS[-1][0]
+        print('Type something. Enter to exit. Max length is', max_length)
+        while True:
+            line = _get_user_input()
+            if len(line) > 0 and line[-1] == '\n':
+                line = line[:-1]
+            if line == '':
+                break
+            output_file.write('English ++++ ' + line + '\n')
+            # Get token-ids for the input sentence.
+            token_ids = data.sentence2id(enc_vocab, str(line))
+            if (len(token_ids) > max_length):
+                print('Max length I can handle is:', max_length)
+                line = _get_user_input()
+                continue
+            # Which bucket does it belong to?
+            bucket_id = _find_right_bucket(len(token_ids))
+            # Get a 1-element batch to feed the sentence to the model.
+            encoder_inputs, decoder_inputs, decoder_masks = data.get_batch([(token_ids, [])], 
+                                                                            bucket_id,
+                                                                            batch_size=1)
+            # Get output logits for the sentence.
+            _, _, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs,
+                                           decoder_masks, bucket_id, True)
+            response = _construct_response(output_logits, inv_dec_vocab)
+            print(response)
+            output_file.write('Translation (Vietnamese) ++++ ' + response + '\n')
+        output_file.write('=============================================\n')
+        output_file.close()
+
+
+def test():
+	try:
+		model = TranslationModel(True, batch_size=1)
+		model.build_graph()
+	except:
+		tf.reset_default_graph()
+		model = TranslationModel(True, batch_size=config.BATCH_SIZE)
+		model.build_graph()
+
+    
+
+
 
 def main():
     run_type = sys.argv[1]
