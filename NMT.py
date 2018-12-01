@@ -293,7 +293,7 @@ def train():
                     sys.stdout.flush()
 
 def translate():
-	""" in test mode, we don't to create the backward path
+    """ in test mode, we don't to create the backward path
     """
 
     model = TranslationModel(True, batch_size=1)
@@ -338,13 +338,13 @@ def translate():
 
 
 def test():
-	try:
-		model = TranslationModel(True, batch_size=1)
-		model.build_graph()
-	except:
-		tf.reset_default_graph()
-		model = TranslationModel(True, batch_size=config.BATCH_SIZE)
-		model.build_graph()
+    try:
+        model = TranslationModel(True, batch_size=1)
+        model.build_graph()
+    except:
+        tf.reset_default_graph()
+        model = TranslationModel(True, batch_size=config.BATCH_SIZE)
+        model.build_graph()
 
     
 
