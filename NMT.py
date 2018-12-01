@@ -375,15 +375,10 @@ def translate():
 
 
 def test():
-    try:
-        model = TranslationModel(True, batch_size=1)
-        model.build_graph()
-    except:
-        tf.reset_default_graph()
-        model = TranslationModel(True, batch_size=config.BATCH_SIZE)
-        model.build_graph()
-
     
+    model = TranslationModel(True, batch_size=config.BATCH_SIZE)
+    model.build_graph()
+
     _, enc_vocab = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.en'))
     inv_dec_vocab, _ = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.vi'))
 
@@ -397,14 +392,35 @@ def test():
         # Decode from standard input.
         max_length = config.BUCKETS[-1][0]
         print('Testing in progress...')
-        bucket_id = 0
-        encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
-                                                                        bucket_id,
-                                                                        batch_size=config.BATCH_SIZE)
-        _, _, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs,
-                                           decoder_masks, bucket_id, True)
-        response = _construct_response(output_logits[0], inv_dec_vocab)
-        print(response)
+        #bucket_id = 0
+        bleu_scores_list = []
+        for bucket_id in range(len(config.BUCKETS)):
+            encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
+                                                                            bucket_id,
+                                                                            batch_size=config.BATCH_SIZE)
+            _, _, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs,
+                                               decoder_masks, bucket_id, True)
+            assert np.dstack(output_logits).shape[0]==np.dstack(encoder_inputs).shape[1]
+            #bleu_scores_list = []
+            for index in range(config.BATCH_SIZE):
+                response = _construct_response(np.dstack(output_logits)[index,:,:], inv_dec_vocab)
+                if index == 0:
+                    print('Response')
+                    print(response)
+                    print('English')
+                    print(' '.join([reverse_enc_dict[a] for a in list(reversed(list(np.dstack(encoder_inputs)[:,index,:][0])))]))
+                    print('Vietnamese')
+                    print(' '.join([inv_dec_vocab[a] for a in (list(np.dstack(decoder_inputs)[:,index,:][0]))]))
+
+                list_of_references = [list(response)] # list of references for all sentences in corpus.
+                list_of_hypotheses = [[inv_dec_vocab[a] for a in (list(np.dstack(decoder_inputs)[:,index,:][0]))]] # list of hypotheses that corresponds to list of references.
+                smoothie = nltk.translate.bleu_score.SmoothingFunction().method4
+                bleu = nltk.translate.bleu_score.corpus_bleu(list_of_references, list_of_hypotheses, smoothing_function=smoothie)
+                #print('bleu score: ', bleu)
+                bleu_scores_list.append(bleu)
+                #print('-'*30)
+            print('Bucket {} is finished'.format(bucket_id))
+        print('Average BLEU: {}'.format(np.mean(bleu_scores_list)))
 
 
 def main():
