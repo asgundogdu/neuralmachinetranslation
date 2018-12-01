@@ -384,6 +384,7 @@ def test():
     _, enc_vocab = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.en'))
     inv_dec_vocab, _ = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.vi'))
 
+    reverse_enc_dict = dict(zip(enc_vocab.values(),enc_vocab.keys()))
 
     saver = tf.train.Saver()
 
