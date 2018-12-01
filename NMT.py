@@ -374,7 +374,27 @@ def test():
         model.build_graph()
 
     
+    _, enc_vocab = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.en'))
+    inv_dec_vocab, _ = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.vi'))
 
+
+    saver = tf.train.Saver()
+
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        _check_restore_parameters(sess, saver)
+        output_file = open(os.path.join(config.PROCESSED_PATH, config.OUTPUT_FILE), 'a+')
+        # Decode from standard input.
+        max_length = config.BUCKETS[-1][0]
+        print('Testing in progress...')
+        bucket_id = 0
+        encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
+                                                                        bucket_id,
+                                                                        batch_size=config.BATCH_SIZE)
+        _, _, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs,
+                                           decoder_masks, bucket_id, True)
+        response = _construct_response(output_logits[0], inv_dec_vocab)
+        print(response)
 
 
 def main():
