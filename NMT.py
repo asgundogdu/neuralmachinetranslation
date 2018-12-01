@@ -301,7 +301,7 @@ def translate():
 
     saver = tf.train.Saver()
 
-     with tf.Session() as sess:
+    with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         _check_restore_parameters(sess, saver)
         output_file = open(os.path.join(config.PROCESSED_PATH, config.OUTPUT_FILE), 'a+')
