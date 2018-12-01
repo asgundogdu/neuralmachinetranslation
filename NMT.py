@@ -319,6 +319,12 @@ def train():
                         start = time.time()
                     sys.stdout.flush()
 
+def _find_right_bucket(length):
+    """ Find the proper bucket for an encoder input based on its length """
+    return min([b for b in range(len(config.BUCKETS))
+                if config.BUCKETS[b][0] >= length])
+
+
 def translate():
     """ in test mode, we don't to create the backward path
     """
