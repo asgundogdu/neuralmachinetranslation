@@ -1,2 +1,2 @@
 # neuralmachinetranslation
-Python LSTM implementation using WMT'14 English-German data 
+Python LSTM implementation using WMT'14 data 
