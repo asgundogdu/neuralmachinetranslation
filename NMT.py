@@ -288,6 +288,9 @@ def train():
     model = TranslationModel(False, config.BATCH_SIZE)
     model.build_graph()
 
+    _, enc_vocab = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.en'))
+    inv_dec_vocab, _ = data.load_vocab(os.path.join(config.PROCESSED_PATH, 'vocab.vi'))
+
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
