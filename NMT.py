@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import time, os, random, sys
+import time, os, random, sys, nltk
 import data
 import config
 
@@ -234,6 +234,7 @@ def _construct_response(output_logits, inv_dec_vocab):
     # Print out sentence corresponding to outputs.
     return " ".join([tf.compat.as_str(inv_dec_vocab[output]) for output in outputs])
 
+
 # def _eval_test_set(sess, model, test_buckets):
 #     """ Evaluate on the test set. """
 #     for bucket_id in range(len(config.BUCKETS)):
@@ -261,11 +262,7 @@ def _eval_test_set(sess, model, test_buckets):
         # Get output logits for the sentence.
         _, step_loss, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs, 
                                    decoder_masks, bucket_id, True)
-        #print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
-        #print('Output logits:', np.dstack(output_logits).shape)
-        for index in range(len(output_logits)):
-            response = _construct_response(np.dstack(output_logits)[index,:,:], inv_dec_vocab)
-            print(response)
+        print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
 
 def _construct_response(output_logits, inv_dec_vocab):
     outputs = [int(np.argmax(output_logits[:,logit_i], axis=0)) for logit_i in range(output_logits.shape[1])]
