@@ -405,7 +405,7 @@ def test():
             assert np.dstack(output_logits).shape[0]==np.dstack(encoder_inputs).shape[1]
             #bleu_scores_list = []
             for index in range(config.BATCH_SIZE):
-                response = _construct_response(np.dstack(output_logits)[index,:,:], inv_dec_vocab)
+                response = _test_construct_response(np.dstack(output_logits)[index,:,:], inv_dec_vocab)
                 if index == 0:
                     print('Response')
                     print(response)
@@ -424,6 +424,13 @@ def test():
             print('Bucket {} is finished'.format(bucket_id))
         print('Average BLEU: {}'.format(np.mean(bleu_scores_list)))
 
+def _test_construct_response(output_logits, inv_dec_vocab):
+    outputs = [int(np.argmax(output_logits[:,logit_i])) for logit_i in range(output_logits.shape[1])]
+    # If there is an EOS symbol in outputs, cut them at that point.
+    if config.EOS_ID in outputs:
+        outputs = outputs[:outputs.index(config.EOS_ID)]
+    # Print out sentence corresponding to outputs.
+    return " ".join([tf.compat.as_str(inv_dec_vocab[output]) for output in outputs])
 
 def main():
     run_type = sys.argv[1]
