@@ -234,6 +234,20 @@ def _construct_response(output_logits, inv_dec_vocab):
     # Print out sentence corresponding to outputs.
     return " ".join([tf.compat.as_str(inv_dec_vocab[output]) for output in outputs])
 
+# def _eval_test_set(sess, model, test_buckets):
+#     """ Evaluate on the test set. """
+#     for bucket_id in range(len(config.BUCKETS)):
+#         if len(test_buckets[bucket_id]) == 0:
+#             print("  Test: empty bucket %d" % (bucket_id))
+#             continue
+#         start = time.time()
+#         encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
+#                                                                         bucket_id,
+#                                                                         batch_size=config.BATCH_SIZE)
+#         _, step_loss, _ = run_step(sess, model, encoder_inputs, decoder_inputs, 
+#                                    decoder_masks, bucket_id, True)
+#         print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
+
 def _eval_test_set(sess, model, test_buckets):
     """ Evaluate on the test set. """
     for bucket_id in range(len(config.BUCKETS)):
@@ -244,9 +258,22 @@ def _eval_test_set(sess, model, test_buckets):
         encoder_inputs, decoder_inputs, decoder_masks = data.get_batch(test_buckets[bucket_id], 
                                                                         bucket_id,
                                                                         batch_size=config.BATCH_SIZE)
-        _, step_loss, _ = run_step(sess, model, encoder_inputs, decoder_inputs, 
+        # Get output logits for the sentence.
+        _, step_loss, output_logits = run_step(sess, model, encoder_inputs, decoder_inputs, 
                                    decoder_masks, bucket_id, True)
-        print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
+        #print('Test bucket {}: loss {}, time {}'.format(bucket_id, step_loss, time.time() - start))
+        #print('Output logits:', np.dstack(output_logits).shape)
+        for index in range(len(output_logits)):
+            response = _construct_response(np.dstack(output_logits)[index,:,:], inv_dec_vocab)
+            print(response)
+
+def _construct_response(output_logits, inv_dec_vocab):
+    outputs = [int(np.argmax(output_logits[:,logit_i], axis=0)) for logit_i in range(output_logits.shape[1])]
+    # If there is an EOS symbol in outputs, cut them at that point.
+    if config.EOS_ID in outputs:
+        outputs = outputs[:outputs.index(config.EOS_ID)]
+    # Print out sentence corresponding to outputs.
+    return " ".join([tf.compat.as_str(inv_dec_vocab[output]) for output in outputs])
 
 
 def train():
@@ -286,7 +313,7 @@ def train():
                     start = time.time()
                     total_loss = 0
                     saver.save(sess, os.path.join(config.CPT_PATH, 'TranslationModel'), global_step=model.global_step)
-                    if iteration % (10 * skip_step) == 0:
+                    if iteration % (2 * skip_step) == 0:
                         # Run evals on development set and print their loss
                         _eval_test_set(sess, model, test_buckets)
                         start = time.time()
