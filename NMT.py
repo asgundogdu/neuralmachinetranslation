@@ -313,7 +313,7 @@ def train():
                     start = time.time()
                     total_loss = 0
                     saver.save(sess, os.path.join(config.CPT_PATH, 'TranslationModel'), global_step=model.global_step)
-                    if iteration % (2 * skip_step) == 0:
+                    if iteration % (10 * skip_step) == 0:
                         # Run evals on development set and print their loss
                         _eval_test_set(sess, model, test_buckets)
                         start = time.time()
