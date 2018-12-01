@@ -376,7 +376,7 @@ def translate():
 
 def test():
 
-	test_buckets, data_buckets, train_buckets_scale = _get_buckets()
+    test_buckets, data_buckets, train_buckets_scale = _get_buckets()
     
     model = TranslationModel(True, batch_size=config.BATCH_SIZE)
     model.build_graph()
